@@ -164,7 +164,7 @@ function doBuild(){
 
   btn.disabled=true;btn.textContent='Собираю...';
   var appIdName=appIdFrom(nameInput);
-  var prefix='TV'+appIdName;
+var prefix=('TV'+appIdName.toUpperCase().replace(/[^A-Z0-9]/g,'')+'ABCDEFGH').slice(0,10);
   var safeName=escXml(nameInput);
   var zip=new JSZip();
   zip.file('config.xml',configXml(appIdName,prefix,safeName));
