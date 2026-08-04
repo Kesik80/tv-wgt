@@ -80,6 +80,13 @@ function appJsRuntime(){
 var OPEN_SCRIPT='<scr'+'ipt>';
 var CLOSE_SCRIPT='</scr'+'ipt>';
 
+function isChallenge(html){
+  var t=html.slice(0,30000).toLowerCase();
+  return t.indexOf('__cf_chl')!==-1||t.indexOf('just a moment')!==-1||
+    t.indexOf('выполнение проверки')!==-1||t.indexOf('checking your browser')!==-1||
+    t.indexOf('attention required')!==-1||t.indexOf('verify you are not a bot')!==-1;
+}
+
 function injectSpatialNav(html,baseUrl){
   var baseTag='<base href="'+baseUrl+'" target="_self">';
   var navJs=OPEN_SCRIPT+'('+spatialNavRuntime.toString()+')();'+CLOSE_SCRIPT;
@@ -89,16 +96,20 @@ function injectSpatialNav(html,baseUrl){
   var be=html.match(/<\/body>/i);
   if(be){html=html.slice(0,be.index)+navJs+html.slice(be.index);}
   else{html=html+navJs;}
-  return html;
-}
+  return html;}
 
 function indexNative(name,url,w,h,sc){
   return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+name+'</title><style>html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hidden}#tvViewport{width:'+w+'px;height:'+h+'px;transform-origin:0 0;position:absolute;top:0;left:0;overflow:hidden}#siteFrame{border:0;width:100%;height:100%;display:block}</style></head><body data-mode="native" data-w="'+w+'" data-h="'+h+'" data-scale="'+sc+'"><div id="tvViewport"><iframe id="siteFrame" src="'+url+'" allow="autoplay; fullscreen" allowfullscreen></iframe></div>'+OPEN_SCRIPT+' src="app.js"'+CLOSE_SCRIPT+'</body></html>';
 }
 function indexCursor(name,url,w,h,sc,sp){
-  return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+name+'</title><style>html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hidden}#tvViewport{width:'+w+'px;height:'+h+'px;transform-origin:0 0;position:absolute;top:0;left:0;overflow:hidden}#siteFrame{border:0;width:100%;height:100%;display:block}#tvCursor{position:fixed;width:32px;height:32px;pointer-events:none;z-index:99999;display:none}</style></head><body data-mode="cursor" data-w="'+w+'" data-h="'+h+'" data-scale="'+sc+'" data-speed="'+sp+'"><div id="tvViewport"><iframe id="siteFrame" src="'+url+'" allow="autoplay; fullscreen" allowfullscreen></iframe></div><div id="tvCursor"><svg width="32" height="32" viewBox="0 0 32 32"><path d="M8 8L24 16L16 24L8 8Z" fill="#00ff88" stroke="#000" stroke-width="2"/></svg></div>'+OPEN_SCRIPT+' src="app.js"'+CLOSE_SCRIPT+'</body></html>';}
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+name+'</title><style>html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hidden}#tvViewport{width:'+w+'px;height:'+h+'px;transform-origin:0 0;position:absolute;top:0;left:0;overflow:hidden}#siteFrame{border:0;width:100%;height:100%;display:block}#tvCursor{position:fixed;width:32px;height:32px;pointer-events:none;z-index:99999;display:none}</style></head><body data-mode="cursor" data-w="'+w+'" data-h="'+h+'" data-scale="'+sc+'" data-speed="'+sp+'"><div id="tvViewport"><iframe id="siteFrame" src="'+url+'" allow="autoplay; fullscreen" allowfullscreen></iframe></div><div id="tvCursor"><svg width="32" height="32" viewBox="0 0 32 32"><path d="M8 8L24 16L16 24L8 8Z" fill="#00ff88" stroke="#000" stroke-width="2"/></svg></div>'+OPEN_SCRIPT+' src="app.js"'+CLOSE_SCRIPT+'</body></html>';
+}
 function indexProxy(name,w,h,sc){
   return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+name+'</title><style>html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hidden}#tvViewport{width:'+w+'px;height:'+h+'px;transform-origin:0 0;position:absolute;top:0;left:0;overflow:hidden}#siteFrame{border:0;width:100%;height:100%;display:block}</style></head><body data-mode="proxy" data-w="'+w+'" data-h="'+h+'" data-scale="'+sc+'"><div id="tvViewport"><iframe id="siteFrame" src="page.html" allow="autoplay; fullscreen" allowfullscreen></iframe></div>'+OPEN_SCRIPT+' src="app.js"'+CLOSE_SCRIPT+'</body></html>';
+}
+function indexDirect(name,url){
+  var safe=url.replace(/\\/g,'\\\\').replace(/'/g,'\\'');
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+name+'</title></head><body style="margin:0;background:#000;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh"><div style="text-align:center"><div style="font-size:32px;margin-bottom:14px">Загрузка…</div><div style="color:#888;font-size:16px">'+name+'</div></div>'+OPEN_SCRIPT+'setTimeout(function(){location.replace(\''+safe+'\');},300);'+CLOSE_SCRIPT+'</body></html>';
 }
 function configXml(appIdName,prefix,safeName){
   var tizenAppId=prefix+'.'+appIdName;
@@ -134,17 +145,17 @@ $('genBtn').addEventListener('click',function(){
 
   if(!urlInput){showStatus('Укажи адрес сайта.','err');return;}
   var targetUrl;
-  try{targetUrl=new URL(urlInput);if(targetUrl.protocol!=='http:'&&targetUrl.protocol!=='https:')throw 0;}
-  catch(e){showStatus('Некорректный адрес. Нужен полный URL, например https://example.com','err');return;}
+  try{targetUrl=new URL(urlInput);if(targetUrl.protocol!=='http:'&&targetUrl.protocol!=='https:')throw 0;}  catch(e){showStatus('Некорректный адрес. Нужен полный URL, например https://example.com','err');return;}
   if(!nameInput){showStatus('Укажи название приложения.','err');return;}
-  if(!proxyBase)proxyBase='https://cors-proxy-tv.kesik80.workers.dev/?url=';
+  if(!proxyBase)proxyBase='https://tv-wgt.vercel.app/api/proxy?url=';
 
   var autoMsg='';
   if(mode==='auto'){
     var t=detectSiteType(targetUrl);
     mode=(t==='video'||t==='cinema')?'proxy':'native';
-    autoMsg=' | авто-режим: '+mode;
+    autoMsg=' | авто: '+mode;
   }
+
   btn.disabled=true;btn.textContent='Собираю...';
   var appIdName=appIdFrom(nameInput);
   var prefix=randomId(10);
@@ -153,7 +164,7 @@ $('genBtn').addEventListener('click',function(){
   zip.file('config.xml',configXml(appIdName,prefix,safeName));
   zip.file('app.js','('+appJsRuntime.toString()+')();');
 
-  function finalize(){
+  function finalize(extra){
     prepareIcon(targetUrl,proxyBase).then(function(icon){
       zip.file('icon.png',icon.blob);
       var note=icon.src==='custom'?'твоя иконка':(icon.src==='site'?'иконка с сайта':'сгенерированная иконка');
@@ -162,7 +173,7 @@ $('genBtn').addEventListener('click',function(){
         a.href=URL.createObjectURL(zb);
         a.download=appIdName.toLowerCase()+'.wgt';
         document.body.appendChild(a);a.click();document.body.removeChild(a);
-        showStatus('Готово: '+appIdName.toLowerCase()+'.wgt скачан ('+note+')'+autoMsg,'ok');
+        showStatus('Готово: '+appIdName.toLowerCase()+'.wgt ('+note+')'+autoMsg+(extra||''),'ok');
         btn.disabled=false;btn.textContent='Собрать .wgt';
       }).catch(function(e){
         showStatus('Ошибка архива: '+(e.message||e),'err');
@@ -171,26 +182,33 @@ $('genBtn').addEventListener('click',function(){
     });
   }
 
+  function useDirect(extra){
+    zip.file('index.html',indexDirect(safeName,targetUrl.href));
+    finalize(extra);
+  }
+
   if(mode==='native'){
     zip.file('index.html',indexNative(safeName,escXml(targetUrl.href),W,H,scaleMode));
-    finalize();
+    finalize('');
   }else if(mode==='cursor'){
     zip.file('index.html',indexCursor(safeName,escXml(targetUrl.href),W,H,scaleMode,speed));
-    finalize();
+    finalize('');
   }else{
-    btn.textContent='Загружаю сайт через прокси...';
-    fetch(proxyBase+encodeURIComponent(targetUrl.href),{mode:'cors'}).then(function(r){
-      if(!r.ok)throw new Error('Прокси вернул ошибку: '+r.status);
+    btn.textContent='Загружаю сайт через прокси...';    fetch(proxyBase+encodeURIComponent(targetUrl.href),{mode:'cors'}).then(function(r){
+      if(!r.ok)throw new Error('HTTP '+r.status);
       return r.text();
     }).then(function(html){
-      if(!html||html.length<100)throw new Error('Прокси вернул пустой ответ.');
+      if(!html||html.length<100)throw new Error('пустой ответ');
+      if(isChallenge(html)){
+        useDirect(' | сайт защищён от прокси → собран Direct (откроется в браузере TV)');
+        return;
+      }
       html=injectSpatialNav(html,targetUrl.origin+'/');
       zip.file('page.html',html);
       zip.file('index.html',indexProxy(safeName,W,H,scaleMode));
-      finalize();
+      finalize('');
     }).catch(function(e){
-      showStatus('Ошибка прокси: '+(e.message||e)+'. Нажми «Проверить прокси», чтобы протестировать.','err');
-      btn.disabled=false;btn.textContent='Собрать .wgt';
+      useDirect(' | прокси недоступен → собран Direct (откроется в браузере TV)');
     });
   }
 });
