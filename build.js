@@ -108,8 +108,7 @@ function indexProxy(name,w,h,sc){
   return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+name+'</title><style>html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hidden}#tvViewport{width:'+w+'px;height:'+h+'px;transform-origin:0 0;position:absolute;top:0;left:0;overflow:hidden}#siteFrame{border:0;width:100%;height:100%;display:block}</style></head><body data-mode="proxy" data-w="'+w+'" data-h="'+h+'" data-scale="'+sc+'"><div id="tvViewport"><iframe id="siteFrame" src="page.html" allow="autoplay; fullscreen" allowfullscreen></iframe></div>'+OPEN_SCRIPT+' src="app.js"'+CLOSE_SCRIPT+'</body></html>';
 }
 function indexDirect(name,url){
-  var safe=url.replace(/\\/g,'\\\\').replace(/'/g,'\\'');
-  return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+name+'</title></head><body style="margin:0;background:#000;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh"><div style="text-align:center"><div style="font-size:32px;margin-bottom:14px">Загрузка…</div><div style="color:#888;font-size:16px">'+name+'</div></div>'+OPEN_SCRIPT+'setTimeout(function(){location.replace(\''+safe+'\');},300);'+CLOSE_SCRIPT+'</body></html>';
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+name+'</title></head><body style="margin:0;background:#000;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh"><div style="text-align:center"><div style="font-size:32px;margin-bottom:14px">Загрузка…</div><div style="color:#888;font-size:16px">'+name+'</div></div>'+OPEN_SCRIPT+'setTimeout(function(){location.replace("'+url+'");},300);'+CLOSE_SCRIPT+'</body></html>';
 }
 function configXml(appIdName,prefix,safeName){
   var tizenAppId=prefix+'.'+appIdName;
@@ -133,19 +132,26 @@ function configXml(appIdName,prefix,safeName){
 }
 
 $('genBtn').addEventListener('click',function(){
+  try{ doBuild(); }catch(e){
+    showStatus('Ошибка сборки: '+(e.message||e),'err');
+    var b=$('genBtn'); b.disabled=false; b.textContent='Собрать .wgt';
+  }
+});
+
+function doBuild(){
   var btn=$('genBtn');
   var urlInput=$('siteUrl').value.trim();
   var nameInput=$('appName').value.trim();
   var mode=$('navMode').value;
   var res=$('tvResolution').value.split('x');
   var W=parseInt(res[0],10),H=parseInt(res[1],10);
-  var scaleMode=$('scaleMode').value;
-  var proxyBase=$('proxyUrl').value.trim();
+  var scaleMode=$('scaleMode').value;  var proxyBase=$('proxyUrl').value.trim();
   var speed=$('cursorSpeed').value;
 
   if(!urlInput){showStatus('Укажи адрес сайта.','err');return;}
   var targetUrl;
-  try{targetUrl=new URL(urlInput);if(targetUrl.protocol!=='http:'&&targetUrl.protocol!=='https:')throw 0;}  catch(e){showStatus('Некорректный адрес. Нужен полный URL, например https://example.com','err');return;}
+  try{targetUrl=new URL(urlInput);if(targetUrl.protocol!=='http:'&&targetUrl.protocol!=='https:')throw 0;}
+  catch(e){showStatus('Некорректный адрес. Нужен полный URL, например https://example.com','err');return;}
   if(!nameInput){showStatus('Укажи название приложения.','err');return;}
   if(!proxyBase)proxyBase='https://tv-wgt.vercel.app/api/proxy?url=';
 
@@ -188,13 +194,13 @@ $('genBtn').addEventListener('click',function(){
   }
 
   if(mode==='native'){
-    zip.file('index.html',indexNative(safeName,escXml(targetUrl.href),W,H,scaleMode));
-    finalize('');
+    zip.file('index.html',indexNative(safeName,escXml(targetUrl.href),W,H,scaleMode));    finalize('');
   }else if(mode==='cursor'){
     zip.file('index.html',indexCursor(safeName,escXml(targetUrl.href),W,H,scaleMode,speed));
     finalize('');
   }else{
-    btn.textContent='Загружаю сайт через прокси...';    fetch(proxyBase+encodeURIComponent(targetUrl.href),{mode:'cors'}).then(function(r){
+    btn.textContent='Загружаю сайт через прокси...';
+    fetch(proxyBase+encodeURIComponent(targetUrl.href),{mode:'cors'}).then(function(r){
       if(!r.ok)throw new Error('HTTP '+r.status);
       return r.text();
     }).then(function(html){
@@ -211,4 +217,4 @@ $('genBtn').addEventListener('click',function(){
       useDirect(' | прокси недоступен → собран Direct (откроется в браузере TV)');
     });
   }
-});
+}
