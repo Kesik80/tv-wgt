@@ -3,22 +3,29 @@ function tvFetchRuntime(){
   var msg=document.getElementById('tvMsg');
   var done=false;
   function setMsg(t){if(msg)msg.textContent=t;}
-  function direct(){if(done)return;done=true;setMsg('Открываю напрямую…');location.replace(url);}
+  function direct(){if(done)return;done=true;location.replace(url);}
   var timer=setTimeout(function(){direct();},10000);
   function isCh(t){t=t.slice(0,30000).toLowerCase();return t.indexOf('__cf_chl')!==-1||t.indexOf('just a moment')!==-1||t.indexOf('выполнение проверки')!==-1;}
+  function badge(){
+    try{var d=document.createElement('div');d.textContent='SMART FOCUS TV';d.style.cssText='position:fixed;right:10px;bottom:10px;z-index:999999;background:rgba(0,0,0,.6);color:#00ff88;font-size:12px;padding:4px 8px;border-radius:6px;font-family:sans-serif';document.documentElement.appendChild(d);}catch(e){}
+  }
+  function setupZoom(){
+    window.addEventListener('load',function(){
+      try{var w=document.body.scrollWidth||1280;var k=window.innerWidth/w;if(k>1.05)document.documentElement.style.zoom=k.toFixed(2);}catch(e){}
+    });
+  }
   function apply(html){
     if(done)return;
     try{
+      html=html.replace(/(src|href)=["']\/\//g,'$1="https://');
       var origin=new URL(url).origin;
-      var head='<base href="'+origin+'/"><style>html{background:#000}</style>';
-      var tail='<scr'+'ipt>addEventListener("load",function(){try{var w=document.body.scrollWidth||1280;var k=window.innerWidth/w;if(k>1.05)document.documentElement.style.zoom=k.toFixed(2);}catch(e){}});</scr'+'ipt>';
-      tail+='<scr'+'ipt>'+NAVSRC+'</scr'+'ipt>';
+      var head='<base href="'+origin+'/"><meta name="referrer" content="origin"><style>html{background:#000}</style>';
       var hm=html.match(/<head[^>]*>/i);
       if(hm){var i1=hm.index+hm[0].length;html=html.slice(0,i1)+head+html.slice(i1);}else{html=head+html;}
-      var be=html.match(/<\/body>/i);
-      if(be){html=html.slice(0,be.index)+tail+html.slice(be.index);}else{html+=tail;}
       done=true;clearTimeout(timer);
       document.open();document.write(html);document.close();
+      try{var nav=(new Function('return '+NAVFN))();nav();}catch(e){}
+      badge();setupZoom();
     }catch(e){direct();}
   }
   try{
@@ -43,5 +50,5 @@ function tvFetchRuntime(){
 indexDirect=function(name,url){
   var navLit=JSON.stringify(spatialNavRuntime.toString());
   var src=tvFetchRuntime.toString();
-  return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+name+'</title></head><body data-url="'+url+'" style="margin:0;background:#000;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh"><div style="text-align:center"><div style="font-size:32px;margin-bottom:14px">Загрузка…</div><div id="tvMsg" style="color:#888;font-size:16px">'+name+'</div></div><scr'+'ipt>var NAVSRC='+navLit+';('+src+')();</scr'+'ipt></body></html>';
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+name+'</title></head><body data-url="'+url+'" style="margin:0;background:#000;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh"><div style="text-align:center"><div style="font-size:32px;margin-bottom:14px">Загрузка…</div><div id="tvMsg" style="color:#888;font-size:16px">'+name+'</div></div><scr'+'ipt>var NAVFN='+navLit+';('+src+')();</scr'+'ipt></body></html>';
 };
